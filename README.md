@@ -1,28 +1,54 @@
 # md2word
 
-`md2word` is a template-governed Markdown-to-DOCX delivery pipeline. It uses
-Pandoc for Markdown conversion, then applies a profile's Word rules and checks
-the resulting OOXML package before delivery.
+**Template-governed Markdown-to-DOCX delivery with structural validation.**
 
-It is intended for reports whose format is part of the acceptance criteria, not
-for a best-effort Markdown preview.
+`md2word` is for documents where a polished DOCX is a deliverable, not merely a
+format conversion. It combines Pandoc's Markdown conversion with a checked
+reference-DOCX profile, targeted OOXML repairs, and an optional Microsoft Word
+review pass.
 
-## What it verifies
+![Rendered public demo page](docs/images/public-demo-page-1.png)
 
-- Reference-DOCX styles remain the formatting authority.
-- Figure and table captions use stable fields such as `图2-1 标题`.
-- Generated documents do not retain the `SEQ Chapter` fields that can leak into
-  first-level headings as values such as `20`.
-- Source images are embedded unchanged when present.
-- The DOCX package passes ZIP-integrity and structural checks.
-- On Windows, an optional Microsoft Word pass updates fields and exports PDF.
+The screenshot is a rendered page from the public example built by this
+repository. Its provenance is documented in
+[`docs/images/README.md`](docs/images/README.md).
 
-## Quick start
+## Why md2word
 
-Prerequisites:
+| Delivery risk | md2word contract |
+| --- | --- |
+| A converter ignores the required Word template | The profile names a reference DOCX; its styles remain the visual authority. |
+| Captions drift or show unstable numbering | Caption text is normalized and written with explicit `SEQ Figure` or `SEQ Table` fields. |
+| Heading numbering fields leak into visible text | Validation rejects generated documents that retain `SEQ Chapter` fields. |
+| A build silently loses supplied images | Source-image hashes must be present among the DOCX media parts. |
+| A file exists but is structurally corrupt | Every build runs DOCX ZIP-integrity and OOXML contract checks. |
+| Word has not refreshed field values | On Windows, `--word` updates fields; `--pdf` exports the same reviewed document to PDF. |
+
+The project deliberately keeps the conversion layer separate from a user's
+private template and content. That makes the pipeline reusable without turning
+project reports, templates, screenshots, or formula libraries into public
+dependencies.
+
+## Pipeline
+
+```text
+Markdown + local images + profile
+  -> Pandoc with a reference DOCX
+  -> caption and code-style normalization
+  -> DOCX ZIP and OOXML validation
+  -> optional Microsoft Word field update and PDF export
+```
+
+The public example is intentionally small, but it exercises a title, headings,
+a table caption, a figure caption, code, a reference template, and the
+post-build validation path.
+
+## Quick Start
+
+Requirements:
 
 - Python 3.11 or newer
-- Pandoc on `PATH`
+- Pandoc available on `PATH`
 - Microsoft Word is optional and required only for `--word` or `--pdf`
 
 ```powershell
@@ -34,27 +60,50 @@ md2word build examples\demo-report.md --profile profiles\public-demo.toml --out 
 pytest
 ```
 
-Add `--word` to update fields through Word before validation, and `--pdf
-artifacts\demo.pdf` to export a PDF in the same pass.
+For a Windows review pass, run:
 
-## Profiles
+```powershell
+md2word build examples\demo-report.md --profile profiles\public-demo.toml --out artifacts\demo.docx --overwrite --word --pdf artifacts\demo.pdf
+```
 
-A profile supplies the reference DOCX and caption labels. The public example is
-at `profiles/public-demo.toml`; project-specific templates belong in private
-repositories unless their redistribution rights are confirmed.
+The CLI reports the output path plus the number of validated captions and
+source images. It refuses to overwrite an existing document unless
+`--overwrite` is supplied.
 
-## Formula backends
+## Profiles and Validation
 
-The public pipeline supports Pandoc's Office Math output. Native MathType is a
-separate, opt-in integration because it requires a licensed Windows Word and
-MathType installation plus a formula bank the user is entitled to use. It is not
-bundled in this repository.
+Profiles keep delivery-specific choices out of the converter:
 
-## Release boundary
+```toml
+reference_docx = "../templates/public-demo.docx"
+figure_label = "图"
+table_label = "表"
+code_style = "Normal"
+```
 
-Do not add course reports, competition templates, proprietary Word templates,
-private images, MathType OLE objects, licenses, or formula banks without an
-explicit redistribution review. See `docs/release-boundary.md`.
+Use a profile to select the reference template, figure/table labels, and the
+target style for Pandoc code paragraphs. See
+[`docs/profiles.md`](docs/profiles.md) for the profile contract.
 
-This repository currently has no license selected. Choose and add a license
-before publishing code for reuse.
+`md2word` validates the package it writes. It is not a guarantee that a
+user-supplied template, image, font, or Word installation meets an external
+submission rule. Treat the optional Word/PDF pass as a review stage and inspect
+the delivered PDF when visual acceptance matters.
+
+## Boundaries
+
+Native MathType is intentionally opt-in: users must supply their own authorized
+Word, MathType, template, and formula bank. The public pipeline supports
+Pandoc's Office Math output but does not bundle MathType assets.
+
+Do not publish customer or course reports, institutional or competition
+templates, private screenshots, MathType OLE objects, formula banks, or
+third-party license material without a redistribution review. Full guidance is
+in [`docs/release-boundary.md`](docs/release-boundary.md).
+
+## License
+
+The project-authored code, documentation, public demo template, example, and
+README screenshot are licensed under [MIT](LICENSE). Third-party tools,
+user-supplied inputs, and material embedded in a user's output retain their
+own terms; see [NOTICE.md](NOTICE.md).
