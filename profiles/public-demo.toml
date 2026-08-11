@@ -1,0 +1,4 @@
+reference_docx = "../templates/public-demo.docx"
+figure_label = "图"
+table_label = "表"
+code_style = "Normal"

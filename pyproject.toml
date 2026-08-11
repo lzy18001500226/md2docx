@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "md2word"
+version = "0.1.0"
+description = "Template-governed Markdown-to-DOCX delivery with structural verification."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "lxml>=5.0",
+    "python-docx>=1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+md2word = "md2word.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
